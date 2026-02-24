@@ -154,7 +154,8 @@ int source(char *script) {
     }
 
     fclose(p);
-
+    // clear the shell memory
+    reset_scripts();
     return errCode;
 }
 
