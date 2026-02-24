@@ -117,11 +117,13 @@ int make_script_pcb(FILE *p){
 
 char *get_script_line(int index, int i) {
     // returns the instructions at the ith line of script at the given index.
+    // Assigns insruction index of PCB, probably a better way to do this...
     // returns NULL if ith line does not exist.
 
     struct SCRIPT_PCB *script = sourcememory.scripts[index];
+    script->instruction_idx = i;
+    
     if (i > script->length) return NULL;
-
     return script->script_addr[i]; // ith line after starting address
 }
 
