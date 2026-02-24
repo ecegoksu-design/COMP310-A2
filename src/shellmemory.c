@@ -2,13 +2,38 @@
 #include <string.h>
 #include <stdio.h>
 #include "shellmemory.h"
+#include "shell.h"
 
 struct memory_struct {
     char *var;
     char *value;
 };
 
+struct SCRIPT_PCB{
+int PID;
+// the address of the loaded lines (points to the first line)
+char(*script_addr)[MAX_USER_INPUT];
+// number of lines/instructions
+int length;
+// the index to the instruction in the lines array
+int instruction_idx;
+//the next PCB in the ready queue
+struct SOURCE_PCB* next;
+};
+
 struct memory_struct shellmemory[MEM_SIZE];
+
+// For SOURCE command, stores lines of a running script
+// May need to adjust for A3
+char scripts[MEM_SIZE][MAX_USER_INPUT];
+
+// ReadyQueue data structure
+struct ReadyQueue {
+    struct SOURCE_PCB* head;
+    struct SOURCE_PCB* tail; // tail could be identified by checking pcb.next == NULL;
+    int size;
+}; 
+
 
 // Helper functions
 int match(char *model, char *var) {
@@ -28,6 +53,21 @@ void mem_init(){
     for (i = 0; i < MEM_SIZE; i++){		
         shellmemory[i].var   = "none";
         shellmemory[i].value = "none";
+        // Initialize scripts array
+        for (int j = 0; j < MAX_USER_INPUT; j++)
+            scripts[i][j] = '\0';
+    }
+}
+
+
+void reset_scripts(){
+    int script_idx = 0;
+
+    while(script_idx < MEM_SIZE){
+        for (int j = 0; j < MAX_USER_INPUT; j++)
+            scripts[script_idx][j] = 0;
+        
+        if (!scripts[++script_idx][0]) break; // Reached the end of the last script
     }
 }
 
