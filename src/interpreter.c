@@ -135,22 +135,19 @@ int print(char *var) {
 
 int source(char *script) {
     int errCode = 0;
-    char line[MAX_USER_INPUT];
     FILE *p = fopen(script, "rt");      // the program is in a file
 
     if (p == NULL) {
         return badcommandFileDoesNotExist();
     }
 
-    fgets(line, MAX_USER_INPUT - 1, p);
-    while (1) {
-        errCode = parseInput(line);     // which calls interpreter()
-        memset(line, 0, sizeof(line));
+    const int pcb_index = make_script_pcb(p);
+    const int script_length = get_pcb_length(pcb_index);
 
-        if (feof(p)) {
-            break;
-        }
-        fgets(line, MAX_USER_INPUT - 1, p);
+    int instr_line = 0;
+    while (instr_line < script_length) {
+        char* instruction = get_script_line(pcb_index, instr_line++); // get lines one by one from shell memory
+        errCode = parseInput(instruction);     // which calls interpreter()
     }
 
     fclose(p);

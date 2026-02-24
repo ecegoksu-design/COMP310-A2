@@ -12,15 +12,15 @@ struct memory_struct {
 
 struct SCRIPT_PCB{
     int PID;
-    // the address of the loaded lines (points to the first line in scipt_lines)
+    // the address of the loaded lines (points to the first line in script_lines)
     char(*script_addr)[MAX_USER_INPUT];
-    // index in
+    // index in scripts
     int script_idx;
     // number of lines/instructions
     int length;
     // the index to the instruction in the lines array
     int instruction_idx;
-    //the next PCB in the ready queue
+    // the next PCB in the ready queue
     struct SCRIPT_PCB* next;
 };
 
@@ -33,11 +33,11 @@ struct ReadyQueue {
 
 // Data structure for SOURCE command
 struct source_struct{
-    // Stores the actual scripts
+    // Stores the actual scripts pointers
     struct SCRIPT_PCB *scripts[3];
 
-    // Stores lines of a running scripts
-    // May need to adjust for A3
+    /* Stores lines of running scripts
+     * May need to adjust for A3 */
     char script_lines[MEM_SIZE][MAX_USER_INPUT];
 };
 
@@ -50,6 +50,8 @@ struct source_struct sourcememory;
 /********/
 
 // Helper functions
+void rq_enqueue(struct SCRIPT_PCB *script);
+
 int match(char *model, char *var) {
     int i, len = strlen(var), matchCount = 0;
     for (i = 0; i < len; i++) {
@@ -70,23 +72,60 @@ void mem_init(){
         shellmemory[i].value = "none";
         // Initialize script_lines array
         for (int j = 0; j < MAX_USER_INPUT; j++) {
-            sourcememory.script_lines[i][j] = '\0';
+            sourcememory.script_lines[i][0] = '\0'; // Might want to initialize the entire array in case of errors
         }
     }
-    // Initialize scripts
+    // Initialize the array for script pointers
     for (i = 0; i<3; i++)
         sourcememory.scripts[i] = 0;
 }
 
-struct SCRIPT_PCB *make_script_pcb(FILE *p){
+int make_script_pcb(FILE *p){
     // Creates a new SCRIPT PCB
-    struct SCRIPT_PCB new;
-    for (int i = 0; i < 3; i++) {
+    //TODO: STILL DON'T KNOW HOW TO ASSIGN PID!!
 
+    int i;
+    struct SCRIPT_PCB *newpcb = malloc(sizeof(struct SCRIPT_PCB));
+    for (i = 0; i < 3; i++) {
+        if(sourcememory.scripts[i] == 0){
+            sourcememory.scripts[i] = newpcb;
+            break;
+        }        
+    } if (i == 3) exit(-1); // Shouldn't be more than 3 files.
+    
+    newpcb->script_idx = i;
+    newpcb->instruction_idx = 0;
+
+    // Find the first free line in script_lines
+    int x=0;
+    while(sourcememory.script_lines[x][0] != '\0') x++;
+    newpcb->script_addr = &sourcememory.script_lines[x];
+    const int starting_line = x;
+
+    // Start loading the lines of the script into shell memory
+    char line[MAX_USER_INPUT];
+    while(NULL != fgets(line, MAX_USER_INPUT - 1, p)){
+        memcpy(sourcememory.script_lines[x++], line, strlen(line)+1); // copy line
+        memset(line, 0, sizeof(line));
     }
 
-    return &new;
+    newpcb->length = x - starting_line;
+    rq_enqueue(newpcb);
+
+    return newpcb->script_idx;
 }
+
+char *get_script_line(int index, int i) {
+    // returns the instructions at the ith line of script at the given index.
+    // returns NULL if ith line does not exist.
+
+    struct SCRIPT_PCB *script = sourcememory.scripts[index];
+    if (i > script->length) return NULL;
+
+    return script->script_addr[i]; // ith line after starting address
+}
+
+// Might need a ready queue reset function too ...
 void rq_enqueue(struct SCRIPT_PCB *script){
     // Adds script to the tail of ReadyQueue rq
     if (rq.size==0) {
@@ -98,7 +137,12 @@ void rq_enqueue(struct SCRIPT_PCB *script){
     rq.tail = script;
     }
 
+    script->next = NULL;
     rq.size++;
+}
+
+int get_pcb_length(int pcb_indx) {
+    return sourcememory.scripts[pcb_indx]->length;
 }
 
 void reset_scripts(){
@@ -106,18 +150,22 @@ void reset_scripts(){
 
     while(script_idx < MEM_SIZE){
         for (int j = 0; j < MAX_USER_INPUT; j++)
-            sourcememory.script_lines[script_idx][j] = 0;
+            sourcememory.script_lines[script_idx][j] = '\0';
         
         if (!sourcememory.script_lines[++script_idx][0]) break; // Reached the end of the last script
     }
+    for (int i = 0; i<3; i++) {
+        free(sourcememory.scripts[i]);
+        sourcememory.scripts[i] = 0;
+    }
 }
 
-struct SCRIPT_PCB *rq_get_head(){
-    return rq.head;
+int rq_get_head_indx(){
+    return rq.head->script_idx;
 }
 
-struct SCRIPT_PCB *rq_get_tail(){
-    return rq.tail;
+int rq_get_tail_indx(){
+    return rq.tail->script_idx;
 }
 
 // Set key value pair

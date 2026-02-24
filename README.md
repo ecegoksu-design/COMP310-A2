@@ -1,8 +1,10 @@
-# A2: Arda Kaan Yildirim & Ece Göksu
+# A2: Arda Kaan Yıldırım & Ece Göksu
 
 Key Decisions for 1.2.1:
 - Data Structure to store the lines of a running program:<br>
-	We decided to store the lines with a 2D array of size _MEM\_SIZE_ with each entry of size _MAX\_USER\_INPUT_.
+	Memory for the source command will be managed by a struct with two arrays:<br>
+	1) An array that holds a pointer to each script pcb of capacity three.<br>
+    2) We decided to store the lines in a 2D array of size _MEM\_SIZE_ with each entry of size _MAX\_USER\_INPUT_.
 
 - Data Structure of PCBs and Ready Queue:<br>
 	We stored the PCB in a struct called _SCRIPT_PCB_. <br>
