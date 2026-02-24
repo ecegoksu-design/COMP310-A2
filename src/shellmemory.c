@@ -15,7 +15,7 @@ struct SCRIPT_PCB{
     // the address of the loaded lines (points to the first line in scipt_lines)
     char(*script_addr)[MAX_USER_INPUT];
     // index in
-    in script_idx;
+    int script_idx;
     // number of lines/instructions
     int length;
     // the index to the instruction in the lines array
@@ -77,6 +77,7 @@ void mem_init(){
     for (i = 0; i<3; i++)
         sourcememory.scripts[i] = 0;
 }
+
 struct SCRIPT_PCB *make_script_pcb(FILE *p){
     // Creates a new SCRIPT PCB
     struct SCRIPT_PCB new;
