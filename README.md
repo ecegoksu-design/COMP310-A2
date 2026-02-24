@@ -1,4 +1,4 @@
-#A2: Arda Kaan Yildirim & Ece Göksu
+# A2: Arda Kaan Yildirim & Ece Göksu
 
 Key Decisions for 1.2.1:
 - Data Structure to store the lines of a running program:<br>
