@@ -8,10 +8,10 @@ make mysh
 
 cd ../test-cases || exit 1
 
-# Collect only test input files (excluding result files)
+
 tests=()
 for f in T_*.txt; do
-    # Skip files that contain "_result" (like T_AGING_result.txt)
+
     if [[ "$f" != *_result*.txt ]]; then
         tests+=("${f%.txt}")
     fi
@@ -26,7 +26,7 @@ for test in "${tests[@]}"; do
     ../src/mysh < "$test.txt" > temp_output.txt
 
     if [ -f "${test}_result2.txt" ]; then
-        # Two possible expected outputs
+
         if diff -iw temp_output.txt "${test}_result.txt" > /dev/null; then
             echo "PASS (matches result1)"
             ((passed++))
@@ -41,7 +41,7 @@ for test in "${tests[@]}"; do
             diff -iw temp_output.txt "${test}_result2.txt"
         fi
     else
-        # Single expected output
+
         if diff -iw temp_output.txt "${test}_result.txt" > /dev/null; then
             echo "PASS"
             ((passed++))
