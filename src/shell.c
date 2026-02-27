@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
     printf("Shell version 1.5 created Dec 2025\n");
 
-    char prompt = '$';  			// Shell prompt
+    const char prompt = '$';  			// Shell prompt
     char userInput[MAX_USER_INPUT];		// user's input stored here
     int errorCode = 0;				// zero means no error, default
 

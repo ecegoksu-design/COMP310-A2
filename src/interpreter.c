@@ -110,7 +110,14 @@ help			Displays all the commands\n \
 quit			Exits / terminates the shell with “Bye!”\n \
 set VAR STRING		Assigns a value to shell memory\n \
 print VAR		Displays the STRING assigned to VAR\n \
-source SCRIPT.TXT	Executes the file SCRIPT.TXT\n ";
+source SCRIPT.TXT	Executes the file SCRIPT.TXT\n \
+echo [input] or $VAR    Prints input to terminal OR if VAR exists in memory, prints value\n \
+my_ls        Lists the contents of pwd\n \
+my_mkdir DIR_NAME   Makes a folder with the name DIRNAME\n \
+my_touch FILE   Creates a file with the name FILE\n \
+my_cd PATH      Changes the pwd to PATH\n \
+source [command] args...    Runs a command from the main shell of the machine\n"
+                         ;
     printf("%s\n", help_string);
     return 0;
 }
@@ -330,7 +337,7 @@ int execute_concurrent(char *args[], int args_size) {
     if (args_size < 3) return badcommand();   
 
     char *policy_str = args[args_size - 1];
-    int num_progs = args_size - 2;   
+    int num_progs = args_size - 2;
     if (num_progs < 1 || num_progs > 3) {
         printf("exec: wrong number of programs\n");
         return 1;
@@ -382,6 +389,7 @@ int execute_concurrent(char *args[], int args_size) {
                 free(pcbs[i]);
             }
         }
+
         return 1;
     }
 
