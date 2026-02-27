@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-int MAX_ARGS_SIZE = 3;
+int MAX_ARGS_SIZE = 10;
 
 int badcommand() {
     printf("Unknown Command\n");
@@ -38,6 +38,7 @@ int my_mkdir(char *dirname);
 int my_touch(char *filename);
 int my_cd(char *dirname);
 int run(char* commands[], int args_size);
+int execute_concurrent(char *args[], int args_size);
 
 // Interpret commands and their arguments
 int interpreter(char *command_args[], int args_size) {
@@ -88,10 +89,15 @@ int interpreter(char *command_args[], int args_size) {
     } else if (strcmp(command_args[0], "my_cd") == 0) {
         if (args_size != 2) return badcommand();
         return my_cd(command_args[1]);
+
     } else if (strcmp(command_args[0], "run") == 0) {
         if (args_size < 2) return badcommand();
         return run(command_args, args_size);
+
+    } else if (strcmp(command_args[0], "exec") == 0) {   
+        return execute_concurrent(command_args, args_size);
     }
+    
 
     return badcommand();
 }
@@ -134,26 +140,19 @@ int print(char *var) {
 }
 
 int source(char *script) {
-    int errCode = 0;
     FILE *p = fopen(script, "rt");      // the program is in a file
 
     if (p == NULL) {
         return badcommandFileDoesNotExist();
     }
 
-    const int pcb_index = make_script_pcb(p);
-    const int script_length = get_pcb_length(pcb_index);
-
-    int instr_line = 0;
-    while (instr_line < script_length) {
-        char* instruction = get_script_line(pcb_index, instr_line++); // get lines one by one from shell memory
-        errCode = parseInput(instruction);     // which calls interpreter()
-    }
-
+    make_script_pcb(p);
     fclose(p);
-    // clear the shell memory
+
+    scheduler_FCFS();
+
     reset_scripts();
-    return errCode;
+    return 0;
 }
 
 int echo(char *input){
@@ -324,5 +323,89 @@ int run(char* commands[], int args_size){
         wait(0);
     }
     
+    return 0;
+}
+
+int execute_concurrent(char *args[], int args_size) {
+    if (args_size < 3) return badcommand();   
+
+    char *policy_str = args[args_size - 1];
+    int num_progs = args_size - 2;   
+    if (num_progs < 1 || num_progs > 3) {
+        printf("exec: wrong number of programs\n");
+        return 1;
+    }
+
+    Policy policy;
+    if (strcmp(policy_str, "FCFS") == 0) policy = FCFS;
+    else if (strcmp(policy_str, "SJF") == 0) policy = SJF;
+    else if (strcmp(policy_str, "RR") == 0) policy = RR;
+    else if (strcmp(policy_str, "AGING") == 0) policy = AGING;
+    else {
+        printf("Unknown policy\n");
+        return 1;
+    }
+
+    for (int i = 1; i <= num_progs; i++) {
+        for (int j = i+1; j <= num_progs; j++) {
+            if (strcmp(args[i], args[j]) == 0) {
+                printf("Duplicate program names\n");
+                return 1;
+            }
+        }
+    }
+
+    struct SCRIPT_PCB *pcbs[3] = {NULL};
+    int success = 1;
+    for (int i = 1; i <= num_progs; i++) {
+        FILE *f = fopen(args[i], "rt");
+        if (f == NULL) {
+            printf("File not found: %s\n", args[i]);
+            success = 0;
+            break;
+        }
+        pcbs[i-1] = allocate_script(f);
+        fclose(f);
+        if (pcbs[i-1] == NULL) {
+            printf("Memory full or error loading %s\n", args[i]);
+            success = 0;
+            break;
+        }
+    }
+
+    if (!success) {
+        for (int i = 0; i < num_progs; i++) {
+            if (pcbs[i]) {
+                for (int j = 0; j < pcbs[i]->length; j++)
+                    pcbs[i]->script_addr[j][0] = '\0';
+                sourcememory.scripts[pcbs[i]->script_idx] = NULL;
+                free(pcbs[i]);
+            }
+        }
+        return 1;
+    }
+
+    for (int i = 0; i < num_progs; i++) {
+        switch (policy) {
+            case FCFS:
+            case RR:
+                rq_enqueue(pcbs[i]);
+                break;
+            case SJF:
+                rq_enqueue_sorted(pcbs[i]);
+                break;
+            case AGING:
+                rq_enqueue_by_score(pcbs[i]);   
+                break;
+        }
+    }
+
+    if (policy == FCFS || policy == SJF) {
+        scheduler_FCFS();      
+    } else if (policy == RR) {
+        scheduler_RR(2);       
+    } else if (policy == AGING) {
+        scheduler_AGING();
+    }
     return 0;
 }
