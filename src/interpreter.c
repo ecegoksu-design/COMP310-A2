@@ -116,8 +116,7 @@ my_ls        Lists the contents of pwd\n \
 my_mkdir DIR_NAME   Makes a folder with the name DIRNAME\n \
 my_touch FILE   Creates a file with the name FILE\n \
 my_cd PATH      Changes the pwd to PATH\n \
-source [command] args...    Runs a command from the main shell of the machine\n"
-                         ;
+source [command] args...    Runs a command from the main shell of the machine\n";
     printf("%s\n", help_string);
     return 0;
 }
@@ -353,7 +352,7 @@ int execute_concurrent(char *args[], int args_size) {
         return 1;
     }
 
-    for (int i = 1; i <= num_progs; i++) {
+    for (int i = 1; i <= num_progs; i++) { // O(n^2)...
         for (int j = i+1; j <= num_progs; j++) {
             if (strcmp(args[i], args[j]) == 0) {
                 printf("Duplicate program names\n");
@@ -380,7 +379,7 @@ int execute_concurrent(char *args[], int args_size) {
         }
     }
 
-    if (!success) {
+    if (!success) { // Could be replaced by reset_scripts()
         for (int i = 0; i < num_progs; i++) {
             if (pcbs[i]) {
                 for (int j = 0; j < pcbs[i]->length; j++)

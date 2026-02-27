@@ -17,6 +17,7 @@ struct source_struct sourcememory;
 struct ReadyQueue rq;
 /********/
 
+
 // Schedulers
 int scheduler_FCFS() {
     while (rq.size > 0) {
@@ -37,7 +38,7 @@ int scheduler_FCFS() {
     return 0;
 }
 
-void scheduler_RR(int time_slice) {
+void scheduler_RR(const int time_slice) {
     while (rq.head != NULL) {
         struct SCRIPT_PCB *current = rq_dequeue();
         int executed = 0;
@@ -62,11 +63,13 @@ void scheduler_AGING(void) {
         struct SCRIPT_PCB *current = rq_dequeue();
 
         if (current->instruction_idx < current->length) {
+            // Program is running
             char *instr = current->script_addr[current->instruction_idx++];
             parseInput(instr);
         }
 
-        if (current->instruction_idx >= current->length) {
+        if(current->instruction_idx >= current->length) {
+            // Program finished, clear its memory
             for (int j = 0; j < current->length; j++)
                 current->script_addr[j][0] = '\0';
             sourcememory.scripts[current->script_idx] = NULL;
@@ -74,6 +77,7 @@ void scheduler_AGING(void) {
             continue;
         }
 
+        // AGING
         struct SCRIPT_PCB *temp = rq.head;
         while (temp != NULL) {
             if (temp->job_score > 0)
@@ -84,6 +88,7 @@ void scheduler_AGING(void) {
         rq_enqueue_by_score(current);
     }
 }
+
 
 // ReadyQueue Functions
  void rq_enqueue(struct SCRIPT_PCB *script){
@@ -117,8 +122,11 @@ void rq_enqueue_sorted(struct SCRIPT_PCB* pcb){
 }
 
 void rq_enqueue_by_score(struct SCRIPT_PCB *pcb) {
-    pcb->next = NULL;
+    // Tie breaking is different in the
 
+
+    // If pcb ran last, it runs again in case of tie (becomes head)
+    // If the queue is being initialized, pcb goes after the head in case of tie
     if (rq.head == NULL || pcb->job_score <= rq.head->job_score) {
         pcb->next = rq.head;
         rq.head = pcb;
@@ -129,10 +137,12 @@ void rq_enqueue_by_score(struct SCRIPT_PCB *pcb) {
 
     struct SCRIPT_PCB *prev = rq.head;
 
-    while (prev->next != NULL && prev->next->job_score < pcb->job_score) {
+    /* Find the spot for the program
+     * Policy: Before the first program with the strictly greater job length score */
+    while (prev->next != NULL && prev->next->job_score <= pcb->job_score) {
         prev = prev->next;
     }
-
+    // Insert the program in the ReadyQueue
     pcb->next = prev->next;
     prev->next = pcb;
     if (pcb->next == NULL) rq.tail = pcb;
@@ -159,7 +169,6 @@ int rq_get_head_indx(){
 int rq_get_tail_indx(){
     return (rq.tail) ? rq.tail->script_idx : -1;
 }
-
 
 
 // Scripts
@@ -228,8 +237,23 @@ int get_pcb_length(int pcb_indx) {
     return sourcememory.scripts[pcb_indx]->length;
 }
 
-// Shell General Memory
-void mem_init(){
+void reset_scripts(){
+    int script_idx = 0;
+    while (script_idx++ < MEM_SIZE) {
+        if (sourcememory.script_lines[script_idx][0] != '\0') {
+            sourcememory.script_lines[script_idx][0] = '\0';
+        }
+    }
+    for (int i = 0; i < 3; i++) {
+        if (sourcememory.scripts[i]) {
+            free(sourcememory.scripts[i]);
+            sourcememory.scripts[i] = NULL;
+        }
+    }
+}
+
+// Variable memory
+ void mem_init(){
     rq.head = NULL;
     rq.tail = NULL;
     rq.size = 0;
@@ -245,21 +269,6 @@ void mem_init(){
         sourcememory.scripts[i] = NULL;
 }
 
-void reset_scripts(){
-    int script_idx = 0;
-    while (script_idx < MEM_SIZE) {
-        sourcememory.script_lines[script_idx][0] = '\0';
-        script_idx++;
-    }
-    for (int i = 0; i < 3; i++) {
-        if (sourcememory.scripts[i]) {
-            free(sourcememory.scripts[i]);
-            sourcememory.scripts[i] = NULL;
-        }
-    }
-}
-
-// Variable memory
 void mem_set_value(char *var_in, char *value_in) {
     for (int i = 0; i < MEM_SIZE; i++) {
         if (strcmp(shellmemory[i].var, var_in) == 0) {
@@ -270,7 +279,7 @@ void mem_set_value(char *var_in, char *value_in) {
     //Value does not exist, need to find a free spot.
     for (int i = 0; i < MEM_SIZE; i++) {
         if (strcmp(shellmemory[i].var, "none") == 0) {
-            shellmemory[i].var   = strdup(var_in);
+            shellmemory[i].var = strdup(var_in);
             shellmemory[i].value = strdup(value_in);
             return;
         }
