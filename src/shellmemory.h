@@ -57,7 +57,7 @@ void scheduler(Policy policy);
 struct SCRIPT_PCB* rq_dequeue(void);
 void rq_enqueue(struct SCRIPT_PCB *script);   
 void scheduler_RR(int time_slice);
-void rq_enqueue_by_score(struct SCRIPT_PCB *pcb);
+void rq_enqueue_by_score(struct SCRIPT_PCB *pcb, short init);
 void scheduler_AGING(void);
 
 #endif

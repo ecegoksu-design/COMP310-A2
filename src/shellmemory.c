@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include "shellmemory.h"
 #include "shell.h"
 
@@ -85,7 +84,7 @@ void scheduler_AGING(void) {
             temp = temp->next;
         }
 
-        rq_enqueue_by_score(current);
+        rq_enqueue_by_score(current, 0);
     }
 }
 
@@ -121,13 +120,13 @@ void rq_enqueue_sorted(struct SCRIPT_PCB* pcb){
     rq.size++;
 }
 
-void rq_enqueue_by_score(struct SCRIPT_PCB *pcb) {
-    // Tie breaking is different in the
-
+void rq_enqueue_by_score(struct SCRIPT_PCB *pcb, const short init) {
+    // Tie breaking during queue init and management is different for this Scheduler.
+    // Pass 1 for init when initializing the read, 0 otherwise
 
     // If pcb ran last, it runs again in case of tie (becomes head)
     // If the queue is being initialized, pcb goes after the head in case of tie
-    if (rq.head == NULL || pcb->job_score <= rq.head->job_score) {
+    if (rq.head == NULL || (!init && pcb->job_score <= rq.head->job_score)) {
         pcb->next = rq.head;
         rq.head = pcb;
         if (rq.tail == NULL) rq.tail = pcb;
@@ -136,13 +135,12 @@ void rq_enqueue_by_score(struct SCRIPT_PCB *pcb) {
     }
 
     struct SCRIPT_PCB *prev = rq.head;
+        /* Find the spot for the program
+         * Policy: Before the first program with the *strictly* greater job length score */
+        while (prev->next != NULL && prev->next->job_score <= pcb->job_score)
+            prev = prev->next;
 
-    /* Find the spot for the program
-     * Policy: Before the first program with the strictly greater job length score */
-    while (prev->next != NULL && prev->next->job_score <= pcb->job_score) {
-        prev = prev->next;
-    }
-    // Insert the program in the ReadyQueue
+    // Insert the program in the ReadyQueue after prev
     pcb->next = prev->next;
     prev->next = pcb;
     if (pcb->next == NULL) rq.tail = pcb;

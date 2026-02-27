@@ -402,7 +402,7 @@ int execute_concurrent(char *args[], int args_size) {
                 rq_enqueue_sorted(pcbs[i]);
                 break;
             case AGING:
-                rq_enqueue_by_score(pcbs[i]);   
+                rq_enqueue_by_score(pcbs[i], 1);
                 break;
         }
     }
