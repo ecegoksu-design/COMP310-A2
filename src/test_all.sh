@@ -59,6 +59,6 @@ done
 echo "Passed: $passed/$total"
 echo "Failed: $((total - passed))/$total"
 
-echo "===Making clean==="
+echo -e "\n===Making clean==="
 cd ../src || exit 1
 make clean
