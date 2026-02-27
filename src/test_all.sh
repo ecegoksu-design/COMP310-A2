@@ -72,6 +72,6 @@ for t in "${failed_tests[@]}"; do
     echo "  $t"
 done
 
-echo "===Making clean==="
+echo -e "\n===Making clean==="
 cd ../src || exit 1
 make clean

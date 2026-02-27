@@ -10,6 +10,9 @@ all: mysh
 style: shell.c shell.h interpreter.c interpreter.h shellmemory.c shellmemory.h
 	$(FMT) $?
 
+test: test_all.sh
+	./test_all.sh
+
 clean: 
 	$(RM) mysh; $(RM) *.o; $(RM) *~
 

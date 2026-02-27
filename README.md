@@ -2,10 +2,10 @@
 
 Key Decisions for 1.2.1:
 - Data Structure to store the lines of a running program:<br>
-	Memory for the source command will be managed by a struct with two arrays:<br>
-	1) An array that holds a pointer to each script pcb of capacity three.<br>
+	Memory for the source command will be managed by a struct with two arrays:
+	1) An array that holds a pointer to each script pcb of capacity three.
     2) We decided to store the lines in a 2D array of size _MEM\_SIZE_ with each entry of size _MAX\_USER\_INPUT_.
 
 - Data Structure of PCBs and Ready Queue:<br>
-	We stored the PCB in a struct called _SCRIPT_PCB_. <br>
+	- We stored the PCB in a struct called _SCRIPT_PCB_. <br>
 	Additionally, as suggested, we added a `struct SCRIPT_PCB* next` field to implement the ready queue as a linked list. 
