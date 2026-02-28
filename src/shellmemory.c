@@ -180,7 +180,7 @@ int rq_get_tail_indx(){
 
 struct SCRIPT_PCB* allocate_script(FILE* f){
     int slot = -1;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < MAX_SCRIPTS; i++) {
         if (sourcememory.scripts[i] == NULL) {
             slot = i;
             break;
@@ -194,7 +194,7 @@ struct SCRIPT_PCB* allocate_script(FILE* f){
 
     int start = 0;
     while (start < MEM_SIZE && sourcememory.script_lines[start][0] != '\0') start++;
-    if (start >= MEM_SIZE) {
+    if (start >= MEM_SIZE) { // Can't allocate no memory
         free(pcb);
         sourcememory.scripts[slot] = NULL;
         return NULL;
@@ -242,7 +242,7 @@ void reset_scripts(){
             sourcememory.script_lines[script_idx][0] = '\0';
         }
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < MAX_SCRIPTS; i++) {
         if (sourcememory.scripts[i]) {
             free(sourcememory.scripts[i]);
             sourcememory.scripts[i] = NULL;
@@ -263,7 +263,7 @@ void reset_scripts(){
         sourcememory.script_lines[i][0] = '\0';
     }
     // Initialize the array for script pointers
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < MAX_SCRIPTS; i++)
         sourcememory.scripts[i] = NULL;
 }
 

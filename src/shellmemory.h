@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "shell.h"   
 #define MEM_SIZE 1000
+#define MAX_SCRIPTS 10
 
 struct SCRIPT_PCB {
     int PID;
@@ -30,12 +31,12 @@ struct ReadyQueue {
 // Data structure for SOURCE command
 struct source_struct {
     // Stores the actual scripts pointers
-    struct SCRIPT_PCB *scripts[3];
+    struct SCRIPT_PCB *scripts[MAX_SCRIPTS];
     
     char script_lines[MEM_SIZE][MAX_USER_INPUT];
 };
 
-typedef enum { FCFS, SJF, RR, AGING } Policy;
+typedef enum { FCFS, SJF, RR, AGING, RR30 } Policy;
 
 extern struct ReadyQueue rq;
 extern struct source_struct sourcememory;

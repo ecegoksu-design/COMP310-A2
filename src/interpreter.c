@@ -332,11 +332,22 @@ int run(char* commands[], int args_size){
     return 0;
 }
 
-int execute_concurrent(char *args[], int args_size) {
-    if (args_size < 3) return badcommand();   
+int execute_concurrent(char *args[], const int args_size) {
+    if (args_size < 3) return badcommand();
 
-    char *policy_str = args[args_size - 1];
-    int num_progs = args_size - 2;
+    const char *policy_str;
+    int num_progs;
+    short background = 0;
+    if (strcmp(args[args_size-1], "#") != 0) { // Normal execution
+        policy_str = args[args_size - 1];
+        num_progs = args_size - 2;
+    } else {
+        // Background mode
+        policy_str = args[args_size - 2];
+        num_progs = args_size - 3;
+        background = 1;
+    }
+
     if (num_progs < 1 || num_progs > 3) {
         printf("exec: wrong number of programs\n");
         return 1;
@@ -347,6 +358,7 @@ int execute_concurrent(char *args[], int args_size) {
     else if (strcmp(policy_str, "SJF") == 0) policy = SJF;
     else if (strcmp(policy_str, "RR") == 0) policy = RR;
     else if (strcmp(policy_str, "AGING") == 0) policy = AGING;
+    else if (strcmp(policy_str, "RR30") == 0) policy = RR30;
     else {
         printf("Unknown policy\n");
         return 1;
@@ -361,7 +373,7 @@ int execute_concurrent(char *args[], int args_size) {
         }
     }
 
-    struct SCRIPT_PCB *pcbs[3] = {NULL};
+    struct SCRIPT_PCB *pcbs[MAX_SCRIPTS] = {NULL};
     int success = 1;
     for (int i = 1; i <= num_progs; i++) {
         FILE *f = fopen(args[i], "rt");
@@ -396,6 +408,7 @@ int execute_concurrent(char *args[], int args_size) {
         switch (policy) {
             case FCFS:
             case RR:
+            case RR30:
                 rq_enqueue(pcbs[i]);
                 break;
             case SJF:
@@ -407,10 +420,27 @@ int execute_concurrent(char *args[], int args_size) {
         }
     }
 
+    if (background) {
+        // The batch script for background execution
+        struct SCRIPT_PCB* batch_script = allocate_script(stdin);
+
+        // Adding the "batch script process" to the pcbs
+        pcbs[num_progs] = batch_script; // next in line after the argument programs
+
+        // batch script process is attached to the head in bg mode.
+        // It runs first
+        batch_script->next = rq.head;
+        rq.head = batch_script;
+        if (rq.tail == NULL) rq.tail = batch_script;
+        rq.size++;
+    }
+
     if (policy == FCFS || policy == SJF) {
         scheduler_FCFS();      
     } else if (policy == RR) {
-        scheduler_RR(2);       
+        scheduler_RR(2);
+    } else if (policy == RR30){
+        scheduler_RR(30);
     } else if (policy == AGING) {
         scheduler_AGING();
     }
