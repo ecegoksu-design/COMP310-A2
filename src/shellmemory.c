@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "shellmemory.h"
 #include "shell.h"
 
@@ -18,6 +19,8 @@ struct ReadyQueue rq;
 
 
 // Schedulers
+pthread_mutex_t rq_mutex;
+
 int scheduler_FCFS() {
     while (rq.size > 0) {
         struct SCRIPT_PCB* proc = rq_dequeue();
@@ -37,7 +40,7 @@ int scheduler_FCFS() {
     return 0;
 }
 
-void scheduler_RR(const int time_slice) {
+void scheduler_RR(const int time_slice, const short multithreaded) {
     while (rq.head != NULL) {
         struct SCRIPT_PCB *current = rq_dequeue();
         int executed = 0;

@@ -9,8 +9,8 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/wait.h>
+
 
 int MAX_ARGS_SIZE = 10;
 
@@ -333,19 +333,33 @@ int run(char* commands[], int args_size){
 }
 
 int execute_concurrent(char *args[], const int args_size) {
+    // Long-ahh command
+
     if (args_size < 3) return badcommand();
 
     const char *policy_str;
     int num_progs;
     short background = 0;
-    if (strcmp(args[args_size-1], "#") != 0) { // Normal execution
-        policy_str = args[args_size - 1];
-        num_progs = args_size - 2;
-    } else {
-        // Background mode
+    short multithreaded = 0;
+
+    if (strcmp(args[args_size-2], "#") == 0 && strcmp(args[args_size-1], "MT") == 0) {
+        multithreaded = 1;
+        background = 1;
+        policy_str = args[args_size - 3];
+        num_progs = args_size - 4;
+    } else if (strcmp(args[args_size-1], "MT") == 0) {
+        multithreaded = 1;
         policy_str = args[args_size - 2];
         num_progs = args_size - 3;
+    } else if (strcmp(args[args_size-1], "#") == 0) {
         background = 1;
+        policy_str = args[args_size - 2];
+        num_progs = args_size - 3;
+    }
+    else {
+        // NORMAL EXECUTION, NO MT, NO BACKGROUND
+        policy_str = args[args_size - 1];
+        num_progs = args_size - 2;
     }
 
     if (num_progs < 1 || num_progs > 3) {
@@ -438,9 +452,9 @@ int execute_concurrent(char *args[], const int args_size) {
     if (policy == FCFS || policy == SJF) {
         scheduler_FCFS();      
     } else if (policy == RR) {
-        scheduler_RR(2);
+        scheduler_RR(2, multithreaded);
     } else if (policy == RR30){
-        scheduler_RR(30);
+        scheduler_RR(30, multithreaded);
     } else if (policy == AGING) {
         scheduler_AGING();
     }
