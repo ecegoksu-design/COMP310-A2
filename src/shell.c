@@ -11,7 +11,6 @@ int parseInput(char ui[]);
 // Start of everything
 int main(int argc, char *argv[]) {
     setvbuf(stdout, NULL, _IONBF, 0);
-    printf("Shell version 1.5 created Dec 2025\n");
 
     const char prompt = '$';  			// Shell prompt
     char userInput[MAX_USER_INPUT];		// user's input stored here

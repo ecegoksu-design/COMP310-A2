@@ -33,8 +33,8 @@ int print(char *var);
 int source(char *script);
 int badcommandFileDoesNotExist();
 int echo(char *input);
-int my_ls(); 
-int my_mkdir(char *dirname); 
+int my_ls();
+int my_mkdir(char *dirname);
 int my_touch(char *filename);
 int my_cd(char *dirname);
 int run(char* commands[], int args_size);
@@ -94,10 +94,10 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size < 2) return badcommand();
         return run(command_args, args_size);
 
-    } else if (strcmp(command_args[0], "exec") == 0) {   
+    } else if (strcmp(command_args[0], "exec") == 0) {
         return execute_concurrent(command_args, args_size);
     }
-    
+
 
     return badcommand();
 }
@@ -152,7 +152,7 @@ int source(char *script) {
         return badcommandFileDoesNotExist();
     }
 
-    make_script_pcb(p);
+    make_script_pcb(p, MAX_FRAMES);
     fclose(p);
 
     scheduler_FCFS();
@@ -162,7 +162,7 @@ int source(char *script) {
 }
 
 int echo(char *input){
-    if (input[0] == '$'){ 
+    if (input[0] == '$'){
         // the user is trying to print a variable
         char var[100];
         size_t len = strlen(input);
@@ -178,15 +178,15 @@ int echo(char *input){
             printf("%s\n", value);
         }
         return 0;
-    } 
+    }
     else {
         printf("%s\n", input);
         return 0;
     }
-    
+
 }
 
-int my_ls(){ 
+int my_ls(){
     struct dirent* dirp;
     DIR *dir = opendir(".");
     char *names[256];
@@ -221,7 +221,7 @@ int my_ls(){
     return 0;
 }
 
-int my_mkdir(char *dirname){ 
+int my_mkdir(char *dirname){
     char name[100];
     int i;
 
@@ -277,21 +277,21 @@ int my_touch(char *filename){
         }
     }
     closedir(dir); // close the handle (pointer)
-    
+
     // File permissions: rwxr-xr-x
 	int fd = creat(filename, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
     if (fd < 0){
         // Failure... no specification
         return -1;
-    } 
+    }
     return 0;
 }
 
 int my_cd(char *dirname){
     /* Changes current directory to directory dirname, inside the current directory. If
-    dirname does not exist inside the current directory, my_cd displays “Bad command: my_cd” and stays
+    dirname does not exist inside the current directory, my_cd displays "Bad command: my_cd" and stays
     inside the current directory. dirname should be an alphanumeric string. */
-    
+
     struct dirent* dirp;
     DIR *dir = opendir("."); // Open the directory
     while ((dirp=readdir(dir))) // if dirp is null, there's no more content to read
@@ -304,23 +304,23 @@ int my_cd(char *dirname){
     }
     // File not found
     closedir(dir);
-    printf("Bad command: my_cd\n");    
-    return 0;    
+    printf("Bad command: my_cd\n");
+    return 0;
 }
 
 int run(char* commands[], int args_size){
     pid_t pid = fork();
-    
+
     if(pid < 0){
     // Error
-        return 2; 
+        return 2;
     } else if (pid == 0){
         // exec
         char* temp[100];
         short i;
         for(i=0; i<args_size-1; i++)
             temp[i] = commands[i+1]; // copy every word in the input except for the first (run)
-            
+
         temp[i] = NULL; // null-terminate the input array
         execvp(temp[0], temp);
         exit(1);
@@ -328,13 +328,11 @@ int run(char* commands[], int args_size){
         // Parent
         wait(0);
     }
-    
+
     return 0;
 }
 
 int execute_concurrent(char *args[], const int args_size) {
-    // Long-ahh command
-
     if (args_size < 3) return badcommand();
 
     const char *policy_str;
@@ -378,7 +376,7 @@ int execute_concurrent(char *args[], const int args_size) {
         return 1;
     }
 
-    for (int i = 1; i <= num_progs; i++) { // O(n^2)...
+    for (int i = 1; i <= num_progs; i++) { // O(n^2)
         for (int j = i+1; j <= num_progs; j++) {
             if (strcmp(args[i], args[j]) == 0) {
                 printf("Duplicate program names\n");
@@ -386,6 +384,8 @@ int execute_concurrent(char *args[], const int args_size) {
             }
         }
     }
+
+    int pages_per_prog = FRAME_STORE_SIZE / (num_progs * PAGE_SIZE);
 
     struct SCRIPT_PCB *pcbs[MAX_SCRIPTS] = {NULL};
     int success = 1;
@@ -396,7 +396,7 @@ int execute_concurrent(char *args[], const int args_size) {
             success = 0;
             break;
         }
-        pcbs[i-1] = allocate_script(f);
+        pcbs[i-1] = allocate_script(f, pages_per_prog);
         fclose(f);
         if (pcbs[i-1] == NULL) {
             printf("Memory full or error loading %s\n", args[i]);
@@ -405,16 +405,10 @@ int execute_concurrent(char *args[], const int args_size) {
         }
     }
 
-    if (!success) { // Could be replaced by reset_scripts()
+    if (!success) {
         for (int i = 0; i < num_progs; i++) {
-            if (pcbs[i]) {
-                for (int j = 0; j < pcbs[i]->length; j++)
-                    pcbs[i]->script_addr[j][0] = '\0';
-                sourcememory.scripts[pcbs[i]->script_idx] = NULL;
-                free(pcbs[i]);
-            }
+            if (pcbs[i]) free_pcb(pcbs[i]);
         }
-
         return 1;
     }
 
@@ -436,7 +430,7 @@ int execute_concurrent(char *args[], const int args_size) {
 
     if (background) {
         // The batch script for background execution
-        struct SCRIPT_PCB* batch_script = allocate_script(stdin);
+        struct SCRIPT_PCB* batch_script = allocate_script(stdin, MAX_FRAMES);
 
         // Adding the "batch script process" to the pcbs
         pcbs[num_progs] = batch_script; // next in line after the argument programs
@@ -450,7 +444,7 @@ int execute_concurrent(char *args[], const int args_size) {
     }
 
     if (policy == FCFS || policy == SJF) {
-        scheduler_FCFS();      
+        scheduler_FCFS();
     } else if (policy == RR) {
         scheduler_RR(2, multithreaded);
     } else if (policy == RR30){

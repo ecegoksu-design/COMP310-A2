@@ -1,77 +1,48 @@
 #!/bin/bash
+set -e
 
 echo "===Starting mysh==="
 
-cd ../src || exit 1
-make clean
-make mysh
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SRC_DIR="$PROJECT_ROOT/src"
+TEST_DIR="$PROJECT_ROOT/test-cases"
 
-cd ../test-cases || exit 1
-
-tests=()
-for f in T_*.txt; do
-    if [[ "$f" != *_result*.txt ]]; then
-        tests+=("${f%.txt}")
-    fi
-done
+tests="tc1 tc2 tc3 tc4 tc5"
 
 passed=0
-total=${#tests[@]}
-passed_tests=()
-failed_tests=()
+total=5
 
-for test in "${tests[@]}"; do
-    echo -n "Testing $test... "
+for test in $tests; do
+  echo "**********************"
+  echo -n "Testing $test... "
 
-    ../src/mysh < "$test.txt" > temp_output.txt
+  case "$test" in
+    tc1|tc2|tc4) size=18 ;;
+    tc3) size=21 ;;
+    tc5) size=6 ;;
+    *) echo "Unknown test $test"; exit 1 ;;
+  esac
 
-    if [ -f "${test}_result2.txt" ]; then
-        if diff -iw temp_output.txt "${test}_result.txt" > /dev/null; then
-            echo "PASS (matches result1)"
-            ((passed++))
-            passed_tests+=("$test (result1)")
-        elif diff -iw temp_output.txt "${test}_result2.txt" > /dev/null; then
-            echo "PASS (matches result2)"
-            ((passed++))
-            passed_tests+=("$test (result2)")
-        else
-            echo "FAIL"
-            failed_tests+=("$test")
-            echo "Differences with result1:"
-            diff -iw temp_output.txt "${test}_result.txt"
-            echo "Differences with result2:"
-            diff -iw temp_output.txt "${test}_result2.txt"
-        fi
-    else
-        if diff -iw temp_output.txt "${test}_result.txt" > /dev/null; then
-            echo "PASS"
-            ((passed++))
-            passed_tests+=("$test")
-        else
-            echo "FAIL"
-            failed_tests+=("$test")
-            echo "Differences:"
-            diff -iw temp_output.txt "${test}_result.txt"
-        fi
-    fi
+  (cd "$SRC_DIR" && make clean >/dev/null && make framesize="$size" mysh >/dev/null)
 
-    echo "**********************"
-    rm -f temp_output.txt
+  (cd "$TEST_DIR" && "$SRC_DIR/mysh" < "$test.txt" > temp_output.txt)
+
+  if diff -iw "$TEST_DIR/temp_output.txt" "$TEST_DIR/${test}_result.txt" >/dev/null; then
+    echo "PASS"
+    passed=$((passed+1))
+  else
+    echo "FAIL"
+    echo "Differences:"
+    diff -iw "$TEST_DIR/temp_output.txt" "$TEST_DIR/${test}_result.txt"
+  fi
+
+  rm -f "$TEST_DIR/temp_output.txt"
 done
 
+echo "**********************"
 echo "Passed: $passed/$total"
 echo "Failed: $((total - passed))/$total"
-echo ""
-echo "Passed tests:"
-for t in "${passed_tests[@]}"; do
-    echo "  $t"
-done
-echo ""
-echo "Failed tests:"
-for t in "${failed_tests[@]}"; do
-    echo "  $t"
-done
 
-echo -e "\n===Making clean==="
-cd ../src || exit 1
-make clean
+echo "===Making clean==="
+(cd "$SRC_DIR" && make clean >/dev/null)
